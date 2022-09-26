@@ -1,0 +1,11 @@
+C:\Users\david\AppData\Local\Temp\7EhLx5eaSgJUATNsfF_Cd
+C:\Users\david\AppData\Local\Temp\nHB00xgRpgNl8B7wHjZ2W
+C:\Users\david\AppData\Local\Temp\w6BFDqGVIfrgg9eDA-BVP
+C:\Users\david\AppData\Local\Temp\CB6_leTi44XMolcHcSOzh
+C:\Users\david\AppData\Local\Temp\Fd7NtCgSp_1ahZhtASRx2
+C:\Users\david\AppData\Local\Temp\xb0cVJ8LKaBhTYfrbEhhk
+C:\Users\david\AppData\Local\Temp\lIEGGguMjhPHDvkWFHUVI
+C:\Users\david\AppData\Local\Temp\ovEFrJITYqvof8D_DhVzc
+C:\Users\david\AppData\Local\Temp\lxHOl-Ipi0thvGJQVdq3D
+C:\Users\david\AppData\Local\Temp\cNI0jF5BUUiAbilhRFHcV
+C:\Users\david\AppData\Local\Temp\E5vLP5afTPyvpJOGpsBNe

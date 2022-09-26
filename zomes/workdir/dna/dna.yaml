@@ -1,0 +1,9 @@
+---
+manifest_version: "1"
+name: oasis_dna
+integrity:
+  uid: 00000000-0000-0000-0000-000000000000
+  properties: ~
+  zomes:
+    - name: oasis
+      bundled: ../../../target/wasm32-unknown-unknown/release/oasis.wasm

@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name = "oasis_zome_integrity"
+version = "0.0.1"
+authors = [ "davidellams", "david@nextgensoftware..co.uk" ]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "oasis_zome_integrity"
+
+[dependencies]
+serde = "=1.0.136"
+chrono = { version = "0.4.22", default-features = false, features = ["clock", "std", "oldtime", "serde"], optional = true }
+derive_more = "0"
+
+hdi = "0.0.19"

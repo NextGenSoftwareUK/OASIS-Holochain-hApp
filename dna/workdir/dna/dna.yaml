@@ -1,0 +1,18 @@
+---
+manifest_version: "1"
+name: oasis_dna
+integrity:
+  uuid: 00000000-0000-0000-0000-000000000000
+  properties: ~
+  origin_time: 2022-09-19T19:30:34.112Z
+  zomes:
+    - name: oasis_zome_integrity
+      bundled: ../../../target/wasm32-unknown-unknown/release/oasis_zome_integrity.wasm
+
+coordinator:
+  zomes:
+    - name: oasis_zome
+      bundled: ../../../target/wasm32-unknown-unknown/release/oasis_zome.wasm
+      dependencies:
+        - name: oasis_zome_integrity
+
