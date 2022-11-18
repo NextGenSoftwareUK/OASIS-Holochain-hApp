@@ -14,20 +14,38 @@ use hdk::prelude::*;
 // }
 
 // New Scaffolding Way
+// #[hdk_entry_helper] //Presume this wraps up #[hdk_entry(id = "avatar", visibility = "public")] ?
+// #[derive(Clone)] // Why don't we need Serialize, Deserialize, SerializedBytes, Debug anymore?
+// pub struct Avatar {
+//     pub id: i32,
+//     pub first_name: String,
+//     pub last_name: String,
+//     pub email: String,
+//     pub dob: String
+// }
+
 #[hdk_entry_helper] //Presume this wraps up #[hdk_entry(id = "avatar", visibility = "public")] ?
 #[derive(Clone)] // Why don't we need Serialize, Deserialize, SerializedBytes, Debug anymore?
 pub struct Avatar {
-    pub id: i32,
+    pub entry_hash: String,
+    pub id: String,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
-    pub dob: String
+    pub dob: String,
+    pub created_date: String,
+    pub created_by: String,
+    pub modified_date: String,
+    pub modified_by: String,
+    pub deleted_date: String,
+    pub deleted_by: String,
+    pub is_active: bool
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateEntryAvatarInput {
   original_action_hash: ActionHash,
-  updated_entry_avatar: Avatar
+  updated_entry: Avatar
 }
 
 #[hdk_entry_defs]
@@ -76,8 +94,14 @@ pub fn get_entry_avatar(action_hash: ActionHash) -> ExternResult<Option<Record>>
 
 #[hdk_extern]
 pub fn update_entry_avatar(input: UpdateEntryAvatarInput) -> ExternResult<ActionHash> {
-  update_entry(input.original_action_hash, &input.updated_entry_avatar)
+  update_entry(input.original_action_hash, &input.updated_entry)
 }
+
+// #[hdk_extern]
+// pub fn update_entry_avatar(avatar: Avatar) -> ExternResult<ActionHash> {
+//   update_entry(avatar.action_hash, &avatar)
+// }
+
 
 // #[hdk_extern]
 // pub fn update_entry_avatar2(original_action_hash: ActionHash, updated_entry_avatar Avatar) -> ExternResult<ActionHash> {
