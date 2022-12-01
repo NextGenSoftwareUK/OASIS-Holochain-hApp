@@ -27,7 +27,7 @@ use hdk::prelude::*;
 #[hdk_entry_helper] //Presume this wraps up #[hdk_entry(id = "avatar", visibility = "public")] ?
 #[derive(Clone)] // Why don't we need Serialize, Deserialize, SerializedBytes, Debug anymore?
 pub struct Avatar {
-    pub entry_hash: String,
+   // pub entry_hash: String,
     pub id: String,
     pub first_name: String,
     pub last_name: String,
@@ -39,7 +39,8 @@ pub struct Avatar {
     pub modified_by: String,
     pub deleted_date: String,
     pub deleted_by: String,
-    pub is_active: bool
+    pub is_active: bool,
+    pub version: i32
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -93,8 +94,11 @@ pub fn get_entry_avatar(action_hash: ActionHash) -> ExternResult<Option<Record>>
 }
 
 #[hdk_extern]
-pub fn update_entry_avatar(input: UpdateEntryAvatarInput) -> ExternResult<ActionHash> {
+pub fn update_entry_avatar(input: UpdateEntryAvatarInput) -> ExternResult<ActionHash> 
+{
+  //  let hash = update_entry(input.original_action_hash, &input.updated_entry);
   update_entry(input.original_action_hash, &input.updated_entry)
+   
 }
 
 // #[hdk_extern]
