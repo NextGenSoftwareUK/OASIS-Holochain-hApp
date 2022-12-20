@@ -112,7 +112,19 @@ pub fn update_entry_avatar(input: UpdateEntryAvatarInput) -> ExternResult<Action
 //   update_entry(original_action_hash, &updated_entry_avatar)
 // }
 
+
+
+#[hdk_extern]
+pub fn test_signal(signal_input: String) -> ExternResult<String> {
+//pub fn test_signal(signal_input: String) -> ExternResult<()>  {
+  // let payload = ExternIO::encode(signal_input).map_err(serialize_err)?;
+  let payload = ExternIO::encode(signal_input);
+  emit_signal(payload);
+  Ok("OK".to_string())
+}
+
 #[hdk_extern]
 pub fn delete_entry_avatar(action_hash: ActionHash) -> ExternResult<ActionHash> {
   delete_entry(action_hash)
 }
+
