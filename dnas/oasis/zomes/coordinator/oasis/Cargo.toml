@@ -1,0 +1,15 @@
+[package]
+name = "oasis"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "oasis"
+
+[dependencies]
+hdk = { workspace = true }
+
+serde = { workspace = true }
+
+oasis_integrity = { workspace = true } 

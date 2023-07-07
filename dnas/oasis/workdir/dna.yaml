@@ -1,0 +1,19 @@
+---
+manifest_version: "1"
+name: oasis
+integrity:
+  network_seed: ~
+  properties: ~
+  origin_time: 1688181237410745
+  zomes:
+    - name: oasis_integrity
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/oasis_integrity.wasm"
+      dependencies: ~
+coordinator:
+  zomes:
+    - name: oasis
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/oasis.wasm"
+      dependencies:
+        - name: oasis_integrity
