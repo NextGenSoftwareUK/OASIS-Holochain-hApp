@@ -8,12 +8,12 @@ integrity:
   zomes:
     - name: oasis_integrity
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/oasis_integrity.wasm"
+      bundled: "../../target/wasm32-unknown-unknown/release/oasis_integrity.wasm"
       dependencies: ~
 coordinator:
   zomes:
     - name: oasis
       hash: ~
-      bundled: "../../../target/wasm32-unknown-unknown/release/oasis.wasm"
+      bundled: "../../target/wasm32-unknown-unknown/release/oasis.wasm"
       dependencies:
         - name: oasis_integrity

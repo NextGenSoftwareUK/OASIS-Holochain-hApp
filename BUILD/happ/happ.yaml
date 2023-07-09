@@ -8,7 +8,7 @@ roles:
       strategy: create
       deferred: false
     dna:
-      bundled: "../../../dnas/oasis/workdir/oasis.dna"
+      bundled: "../dna/oasis.dna"
       modifiers:
         network_seed: ~
         properties: ~
