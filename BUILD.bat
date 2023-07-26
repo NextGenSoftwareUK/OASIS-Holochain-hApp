@@ -1,6 +1,6 @@
 
 REM Set the workdir variable below to the workdir where your dna and happ folders are.
-REM See https://github.com/holochain-open-dev/wiki/wiki/Installing-Holochain-Natively-On-Windows for more info...
+REM See https://github.com/holochain-open-dev/wiki/wiki/Installing-Holochain--&-Building-hApps-Natively-On-Windows for more info...
 
 SET workdir=BUILD
 
