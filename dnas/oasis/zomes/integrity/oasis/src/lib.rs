@@ -12,7 +12,8 @@ pub enum EntryTypes {
 #[hdk_link_types]
 pub enum LinkTypes {
     AvatarUpdates,
-    AllAvatars,
+    AllAvatars//,
+    //AllAvatarsByUsername
 }
 #[hdk_extern]
 pub fn genesis_self_check(

@@ -4,10 +4,24 @@ use hdi::prelude::*;
 pub struct Avatar {
     pub first_name: String,
     pub last_name: String,
+    pub email: String,
     pub dob: String,
-    pub created_date: Timestamp,
-    pub created_by: AgentPubKey,
+    pub id: String,
+    pub created_date: String,
+    pub created_by: String,
+    pub modified_date: String,
     pub modified_by: String,
+    pub deleted_date: String,
+    pub deleted_by: String,
+    // pub created_date: Timestamp,
+    // pub created_by: AgentPubKey,
+    // pub modified_date: Timestamp,
+    // pub modified_by: AgentPubKey,
+    // pub deleted_date: Timestamp,
+    // pub deleted_by: AgentPubKey,
+    pub is_active: bool,
+    pub version: i32,
+    pub state: i32
 }
 pub fn validate_create_avatar(
     _action: EntryCreationAction,
