@@ -12,8 +12,8 @@ pub enum EntryTypes {
 #[hdk_link_types]
 pub enum LinkTypes {
     AvatarUpdates,
-    AllAvatars//,
-    //AllAvatarsByUsername
+    AllAvatars,
+    AllAvatarsByUsername
 }
 #[hdk_extern]
 pub fn genesis_self_check(
@@ -118,6 +118,14 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 }
                 LinkTypes::AllAvatars => {
                     validate_create_link_all_avatars(
+                        action,
+                        base_address,
+                        target_address,
+                        tag,
+                    )
+                }
+                LinkTypes::AllAvatarsByUsername => {
+                    validate_create_link_all_avatars_by_username(
                         action,
                         base_address,
                         target_address,

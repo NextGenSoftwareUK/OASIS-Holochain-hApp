@@ -19,12 +19,12 @@ pub fn create_avatar(avatar: Avatar) -> ExternResult<Record> {
         (),
     )?;
 
-    // create_link(
-    //     avatar.username,
-    //     avatar_action_hash.clone(),
-    //     LinkTypes::AllAvatarsByUsername,
-    //     (),
-    // )?;
+    create_link(
+        avatar.username,
+        avatar_action_hash.clone(),
+        LinkTypes::AllAvatarsByUsername,
+        (),
+    )?;
 
     Ok(record)
     //Ok(avatar_action_hash)
@@ -44,21 +44,21 @@ pub fn get_avatar(original_avatar_hash: ActionHash) -> ExternResult<Option<Recor
     get(latest_avatar_hash, GetOptions::default())
 }
 
-// #[hdk_extern]
-// pub fn get_entry_avatar_by_username(username: String) -> ExternResult<Option<Record>> {
+#[hdk_extern]
+pub fn get_avatar_by_username(username: String) -> ExternResult<Option<Record>> {
     
-//     //TODO: Need to search/lookup the avatar or actionhash which matches the given username...
+    //TODO: Need to search/lookup the avatar or actionhash which matches the given username...
     
-//     let links = get_links(username, LinkTypes::AllAvatarsByUsername, None)?;
-//     let latest_link = links
-//         .into_iter()
-//         .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
-//     let latest_avatar_hash = match latest_link {
-//         Some(link) => ActionHash::from(link.target.clone()),
-//         None => username,
-//     };
-//     get(latest_avatar_hash, GetOptions::default())
-// }
+    let links = get_links(username, LinkTypes::AllAvatarsByUsername, None)?;
+    let latest_link = links
+        .into_iter()
+        .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
+    let latest_avatar_hash = match latest_link {
+        Some(link) => ActionHash::from(link.target.clone()),
+        None => username,
+    };
+    get(latest_avatar_hash, GetOptions::default())
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateAvatarInput {
