@@ -161,6 +161,15 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         tag,
                     )
                 }
+                LinkTypes::AllAvatarsByUsername => {
+                    validate_delete_link_all_avatars_by_username(
+                        action,
+                        original_action,
+                        base_address,
+                        target_address,
+                        tag,
+                    )
+                }
             }
         }
         FlatOp::StoreRecord(store_record) => {
@@ -314,6 +323,14 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 tag,
                             )
                         }
+                        LinkTypes::AllAvatarsByUsername => {
+                            validate_create_link_all_avatars_by_username(
+                                action,
+                                base_address,
+                                target_address,
+                                tag,
+                            )
+                        }
                     }
                 }
                 OpRecord::DeleteLink { original_action_hash, base_address, action } => {
@@ -345,7 +362,7 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 create_link.clone(),
                                 base_address,
                                 create_link.target_address,
-                                create_link.tag,
+                                create_link.tag
                             )
                         }
                         LinkTypes::AllAvatars => {
@@ -354,7 +371,16 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 create_link.clone(),
                                 base_address,
                                 create_link.target_address,
-                                create_link.tag,
+                                create_link.tag
+                            )
+                        }
+                        LinkTypes::AllAvatarsByUsername => {
+                            validate_delete_link_all_avatars_by_username(
+                                action,
+                                create_link.clone(),
+                                base_address,
+                                create_link.target_address,
+                                create_link.tag
                             )
                         }
                     }

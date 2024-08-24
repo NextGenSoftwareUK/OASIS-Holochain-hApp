@@ -181,3 +181,17 @@ pub fn validate_delete_link_all_avatars(
         ),
     )
 }
+
+pub fn validate_delete_link_all_avatars_by_username(
+    _action: DeleteLink,
+    _original_action: CreateLink,
+    _base: AnyLinkableHash,
+    _target: AnyLinkableHash,
+    _tag: LinkTag,
+) -> ExternResult<ValidateCallbackResult> {
+    Ok(
+        ValidateCallbackResult::Invalid(
+            String::from("AllAvatarsByUsername links cannot be deleted"),
+        ),
+    )
+}

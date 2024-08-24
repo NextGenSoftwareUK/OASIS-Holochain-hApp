@@ -19,8 +19,10 @@ pub fn create_avatar(avatar: Avatar) -> ExternResult<Record> {
         (),
     )?;
 
+    let path = Path::from(avatar.username);
+
     create_link(
-        avatar.username,
+        path.path_entry_hash()?,
         avatar_action_hash.clone(),
         LinkTypes::AllAvatarsByUsername,
         (),
@@ -49,13 +51,13 @@ pub fn get_avatar_by_username(username: String) -> ExternResult<Option<Record>> 
     
     //TODO: Need to search/lookup the avatar or actionhash which matches the given username...
     
-    let links = get_links(username, LinkTypes::AllAvatarsByUsername, None)?;
+    let links = get_links(username.clone(), LinkTypes::AllAvatarsByUsername, None)?;
     let latest_link = links
         .into_iter()
         .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
     let latest_avatar_hash = match latest_link {
         Some(link) => ActionHash::from(link.target.clone()),
-        None => username,
+        None => username.clone(),
     };
     get(latest_avatar_hash, GetOptions::default())
 }
