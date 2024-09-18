@@ -1,19 +1,18 @@
-pub mod avatar;
-pub use avatar::*;
+pub mod data;
+pub use data::*;
 use hdi::prelude::*;
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[hdk_entry_defs]
 #[unit_enum(UnitEntryTypes)]
 pub enum EntryTypes {
-    Avatar(Avatar),
+    Data(Data),
 }
 #[derive(Serialize, Deserialize)]
 #[hdk_link_types]
 pub enum LinkTypes {
-    AvatarUpdates,
-    AllAvatars,
-    AllAvatarsByUsername
+    DataUpdates,
+    AllData
 }
 #[hdk_extern]
 pub fn genesis_self_check(
@@ -34,20 +33,20 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             match store_entry {
                 OpEntry::CreateEntry { app_entry, action } => {
                     match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
+                        EntryTypes::Data(Data) => {
+                            validate_create_data(
                                 EntryCreationAction::Create(action),
-                                avatar,
+                                Data,
                             )
                         }
                     }
                 }
                 OpEntry::UpdateEntry { app_entry, action, .. } => {
                     match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
+                        EntryTypes::Data(Data) => {
+                            validate_create_data(
                                 EntryCreationAction::Update(action),
-                                avatar,
+                                Data,
                             )
                         }
                     }
@@ -65,14 +64,14 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 } => {
                     match (app_entry, original_app_entry) {
                         (
-                            EntryTypes::Avatar(avatar),
-                            EntryTypes::Avatar(original_avatar),
+                            EntryTypes::Data(Data),
+                            EntryTypes::Data(original_Data),
                         ) => {
-                            validate_update_avatar(
+                            validate_update_data(
                                 action,
-                                avatar,
+                                Data,
                                 original_action,
-                                original_avatar,
+                                original_Data,
                             )
                         }
                         _ => {
@@ -92,8 +91,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             match delete_entry {
                 OpDelete::Entry { original_action, original_app_entry, action } => {
                     match original_app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_delete_avatar(action, original_action, avatar)
+                        EntryTypes::Data(Data) => {
+                            validate_delete_data(action, original_action, Data)
                         }
                     }
                 }
@@ -108,24 +107,16 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             action,
         } => {
             match link_type {
-                LinkTypes::AvatarUpdates => {
-                    validate_create_link_avatar_updates(
+                LinkTypes::DataUpdates => {
+                    validate_create_link_data_updates(
                         action,
                         base_address,
                         target_address,
                         tag,
                     )
                 }
-                LinkTypes::AllAvatars => {
-                    validate_create_link_all_avatars(
-                        action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatarsByUsername => {
-                    validate_create_link_all_avatars_by_username(
+                LinkTypes::AllData => {
+                    validate_create_link_all_datas(
                         action,
                         base_address,
                         target_address,
@@ -143,8 +134,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             action,
         } => {
             match link_type {
-                LinkTypes::AvatarUpdates => {
-                    validate_delete_link_avatar_updates(
+                LinkTypes::DataUpdates => {
+                    validate_delete_link_data_updates(
                         action,
                         original_action,
                         base_address,
@@ -152,17 +143,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         tag,
                     )
                 }
-                LinkTypes::AllAvatars => {
-                    validate_delete_link_all_avatars(
-                        action,
-                        original_action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatarsByUsername => {
-                    validate_delete_link_all_avatars_by_username(
+                LinkTypes::AllData => {
+                    validate_delete_link_all_datas(
                         action,
                         original_action,
                         base_address,
@@ -176,10 +158,10 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             match store_record {
                 OpRecord::CreateEntry { app_entry, action } => {
                     match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
+                        EntryTypes::Data(Data) => {
+                            validate_create_data(
                                 EntryCreationAction::Create(action),
-                                avatar,
+                                Data,
                             )
                         }
                     }
@@ -205,18 +187,18 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         }
                     };
                     match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            let result = validate_create_avatar(
+                        EntryTypes::Data(Data) => {
+                            let result = validate_create_data(
                                 EntryCreationAction::Update(action.clone()),
-                                avatar.clone(),
+                                Data.clone(),
                             )?;
                             if let ValidateCallbackResult::Valid = result {
-                                let original_avatar: Option<Avatar> = original_record
+                                let original_Data: Option<Data> = original_record
                                     .entry()
                                     .to_app_option()
                                     .map_err(|e| wasm_error!(e))?;
-                                let original_avatar = match original_avatar {
-                                    Some(avatar) => avatar,
+                                let original_Data = match original_Data {
+                                    Some(Data) => Data,
                                     None => {
                                         return Ok(
                                             ValidateCallbackResult::Invalid(
@@ -226,11 +208,11 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                         );
                                     }
                                 };
-                                validate_update_avatar(
+                                validate_update_data(
                                     action,
-                                    avatar,
+                                    Data,
                                     original_action,
-                                    original_avatar,
+                                    original_Data,
                                 )
                             } else {
                                 Ok(result)
@@ -290,11 +272,11 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         }
                     };
                     match original_app_entry {
-                        EntryTypes::Avatar(original_avatar) => {
-                            validate_delete_avatar(
+                        EntryTypes::Data(original_Data) => {
+                            validate_delete_data(
                                 action,
                                 original_action,
-                                original_avatar,
+                                original_Data,
                             )
                         }
                     }
@@ -307,24 +289,16 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                     action,
                 } => {
                     match link_type {
-                        LinkTypes::AvatarUpdates => {
-                            validate_create_link_avatar_updates(
+                        LinkTypes::DataUpdates => {
+                            validate_create_link_data_updates(
                                 action,
                                 base_address,
                                 target_address,
                                 tag,
                             )
                         }
-                        LinkTypes::AllAvatars => {
-                            validate_create_link_all_avatars(
-                                action,
-                                base_address,
-                                target_address,
-                                tag,
-                            )
-                        }
-                        LinkTypes::AllAvatarsByUsername => {
-                            validate_create_link_all_avatars_by_username(
+                        LinkTypes::AllData => {
+                            validate_create_link_all_datas(
                                 action,
                                 base_address,
                                 target_address,
@@ -356,8 +330,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         }
                     };
                     match link_type {
-                        LinkTypes::AvatarUpdates => {
-                            validate_delete_link_avatar_updates(
+                        LinkTypes::DataUpdates => {
+                            validate_delete_link_data_updates(
                                 action,
                                 create_link.clone(),
                                 base_address,
@@ -365,17 +339,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 create_link.tag
                             )
                         }
-                        LinkTypes::AllAvatars => {
-                            validate_delete_link_all_avatars(
-                                action,
-                                create_link.clone(),
-                                base_address,
-                                create_link.target_address,
-                                create_link.tag
-                            )
-                        }
-                        LinkTypes::AllAvatarsByUsername => {
-                            validate_delete_link_all_avatars_by_username(
+                        LinkTypes::AllData => {
+                            validate_delete_link_all_datas(
                                 action,
                                 create_link.clone(),
                                 base_address,

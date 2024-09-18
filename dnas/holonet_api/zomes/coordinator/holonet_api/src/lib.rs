@@ -1,7 +1,7 @@
-pub mod all_avatars;
-pub mod avatar;
+pub mod all_data;
+pub mod data;
 use hdk::prelude::*;
-use oasis_integrity::*;
+use holonet_api_integrity::*;
 #[hdk_extern]
 pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)

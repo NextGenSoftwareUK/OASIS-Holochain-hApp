@@ -1,10 +1,10 @@
 use hdk::prelude::*;
-use oasis_integrity::*;
+use holonet_api_integrity::*;
 
 #[hdk_extern]
-pub fn get_all_avatars(_: ()) -> ExternResult<Vec<Record>> {
-    let path = Path::from("all_avatars");
-    let links = get_links(path.path_entry_hash()?, LinkTypes::AllAvatars, None)?;
+pub fn get_all_data(_: ()) -> ExternResult<Vec<Record>> {
+    let path = Path::from("all_data");
+    let links = get_links(path.path_entry_hash()?, LinkTypes::AllData, None)?;
     let get_input: Vec<GetInput> = links
         .into_iter()
         .map(|link| GetInput::new(

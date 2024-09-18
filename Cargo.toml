@@ -12,8 +12,8 @@ hdi = "=0.2.3"
 hdk = "=0.1.3"
 serde = "1"
 
-[workspace.dependencies.oasis]
-path = "dnas/oasis/zomes/coordinator/oasis"
+[workspace.dependencies.holonet_api]
+path = "dnas/holonet_api/zomes/coordinator/holonet_api"
 
-[workspace.dependencies.oasis_integrity]
-path = "dnas/oasis/zomes/integrity/oasis"
+[workspace.dependencies.holonet_api_integrity]
+path = "dnas/holonet_api/zomes/integrity/holonet_api"

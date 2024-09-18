@@ -1,0 +1,19 @@
+---
+manifest_version: "1"
+name: holonet_api
+integrity:
+  network_seed: ~
+  properties: ~
+  origin_time: 1688181237410745
+  zomes:
+    - name: holonet_api_integrity
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/holonet_api_integrity.wasm"
+      dependencies: ~
+coordinator:
+  zomes:
+    - name: holonet_api
+      hash: ~
+      bundled: "../../../target/wasm32-unknown-unknown/release/holonet_api.wasm"
+      dependencies:
+        - name: holonet_api_integrity
