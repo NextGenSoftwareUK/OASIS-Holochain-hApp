@@ -1,5 +1,4 @@
 use hdk::prelude::*;
-
 use oasis_integrity::*;
 
 #[hdk_extern]
@@ -53,15 +52,15 @@ pub fn get_avatar_by_username(username: String) -> ExternResult<Option<Record>> 
     
     //TODO: Need to search/lookup the avatar or actionhash which matches the given username...
     let path = Path::from(username);
-    let links = get_links(AnyLinkableHash::try_from(path.path_entry_hash()?)?, LinkTypes::AllAvatarsByUsername, None);
+    let links = get_links(AnyLinkableHash::try_from(path.path_entry_hash()?)?, LinkTypes::AllAvatarsByUsername, None)?;
     
     let latest_link = links
         .into_iter()
-        .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
+        .max_by(|link_a, link_b| link_a. timestamp.cmp(&link_b.timestamp));
     
-        let latest_avatar_hash = match latest_link {
+    let latest_avatar_hash = match latest_link {
         Some(link) => ActionHash::from(link.target.clone()),
-        None => path.path_entry_hash(),
+        None => path.path_entry_hash()?,
     };
 
     get(latest_avatar_hash, GetOptions::default())
