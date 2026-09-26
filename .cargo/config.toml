@@ -1,0 +1,5 @@
+# Holochain zomes obtain secure randomness from conductor host functions.
+# Preserve those imports for the conductor and select getrandom's custom WASM
+# backend, matching the flags used by Holochain's own zome builds.
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg=getrandom_backend="custom"', "-C", "link-arg=--import-undefined"]

@@ -2737,7 +2737,6 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "230d83b3ef25d71275c5d7833b40a2d6346ce4ce824d332546536c407ae32843"
 dependencies = [
- "getrandom 0.3.4",
  "hdk",
  "holochain_serialized_bytes",
  "serde",
