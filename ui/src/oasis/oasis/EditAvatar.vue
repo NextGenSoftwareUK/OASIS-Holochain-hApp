@@ -63,11 +63,11 @@ export default defineComponent({
   } {
     const currentAvatar = decode((this.currentRecord.entry as any).Present.entry) as Avatar;
     return { 
-      firstName: currentAvatar.firstName,
-      lastName: currentAvatar.lastName,
+      firstName: currentAvatar.first_name,
+      lastName: currentAvatar.last_name,
       dob: currentAvatar.dob,
-      createdDate: currentAvatar.createdDate,
-      modifiedBy: currentAvatar.modifiedBy,
+      createdDate: currentAvatar.created_date,
+      modifiedBy: currentAvatar.modified_by,
     }
   },
   props: {

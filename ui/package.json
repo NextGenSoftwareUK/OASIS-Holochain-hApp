@@ -9,27 +9,27 @@
   },
   "dependencies": {
     "@holochain/client": "^0.12.2",
-    "@material/mwc-circular-progress": "^0.27.0",
     "@material/mwc-button": "^0.27.0",
-    "@material/mwc-textfield": "^0.27.0",
-    "@material/mwc-textarea": "^0.27.0",
     "@material/mwc-checkbox": "^0.27.0",
+    "@material/mwc-circular-progress": "^0.27.0",
+    "@material/mwc-formfield": "^0.27.0",
+    "@material/mwc-icon-button": "^0.27.0",
+    "@material/mwc-select": "^0.27.0",
     "@material/mwc-slider": "^0.27.0",
     "@material/mwc-snackbar": "^0.27.0",
-    "@material/mwc-formfield": "^0.27.0",
-    "@material/mwc-select": "^0.27.0",
-    "@material/mwc-icon-button": "^0.27.0",
+    "@material/mwc-textarea": "^0.27.0",
+    "@material/mwc-textfield": "^0.27.0",
     "@msgpack/msgpack": "^2.7.2",
     "@vaadin/date-time-picker": "^23.2.8",
     "vue": "^3.2.25"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.0.0",
+    "@vitejs/plugin-vue": "^6.0.9",
     "bestzip": "^2.2.0",
-    "typescript": "^4.9.3",
-    "vite": "^4.0.4",
-    "vite-plugin-checker": "^0.5.1",
-    "vue-tsc": "^1.0.24"
+    "typescript": "^5.8.3",
+    "vite": "^8.3.1",
+    "vite-plugin-checker": "^0.14.5",
+    "vue-tsc": "^3.3.11"
   },
   "type": "module"
 }

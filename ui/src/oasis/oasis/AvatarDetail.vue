@@ -33,7 +33,7 @@
 
       <div style="display: flex; flex-direction: row; margin-bottom: 16px;">
 	<span style="margin-right: 4px"><strong>Created Date: </strong></span>
- 	<span style="white-space: pre-line">{{  new Date(avatar?.created_date / 1000).toLocaleString() }} </span>
+	<span style="white-space: pre-line">{{ avatar ? new Date(avatar.created_date / 1000).toLocaleString() : '' }} </span>
       </div>
 
       <div style="display: flex; flex-direction: row; margin-bottom: 16px;">

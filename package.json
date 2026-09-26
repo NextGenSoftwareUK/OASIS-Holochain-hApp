@@ -2,8 +2,7 @@
   "name": "oasis-dev",
   "private": true,
   "workspaces": [
-    "ui",
-    "tests"
+    "ui"
   ],
   "scripts": {
     "start": "AGENTS=2 npm run network",
@@ -12,12 +11,13 @@
     "launch:happ": "echo \"pass\" | RUST_LOG=warn hc launch --piped -n $AGENTS workdir/oasis.happ --ui-port $UI_PORT network mdns",
     "package": "npm run build:happ && npm run package -w ui && hc web-app pack workdir --recursive",
     "build:happ": "npm run build:zomes && hc dna pack dnas/oasis/workdir && hc app pack workdir",
-    "build:zomes": "RUSTFLAGS='--cfg getrandom_backend=\"unsupported\"' CARGO_TARGET_DIR=target cargo build --release --target wasm32-unknown-unknown"
+    "build:zomes": "CARGO_TARGET_DIR=target cargo build --release --target wasm32-unknown-unknown"
   },
   "devDependencies": {
     "@holochain-playground/cli": "^0.1.1",
     "concurrently": "^6.2.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "npm": ">=7.0.0"
