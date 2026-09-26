@@ -1,14 +1,10 @@
 {
-  description = "Template for Holochain app development";
+  description = "OASIS Holochain hApp development environment";
 
   inputs = {
-    versions.url  = "github:holochain/holochain?dir=versions/0_1";
-
-    holochain-flake.url = "github:holochain/holochain";
-    holochain-flake.inputs.versions.follows = "versions";
-
-    nixpkgs.follows = "holochain-flake/nixpkgs";
-    flake-parts.follows = "holochain-flake/flake-parts";
+    holonix.url = "github:holochain/holonix?ref=main-0.7";
+    nixpkgs.follows = "holonix/nixpkgs";
+    flake-parts.follows = "holonix/flake-parts";
   };
 
   outputs = inputs:
@@ -17,7 +13,7 @@
         inherit inputs;
       }
       {
-        systems = builtins.attrNames inputs.holochain-flake.devShells;
+        systems = builtins.attrNames inputs.holonix.devShells;
         perSystem =
           { inputs'
           , config
@@ -26,11 +22,14 @@
           , ...
           }: {
             devShells.default = pkgs.mkShell {
-              inputsFrom = [ inputs'.holochain-flake.devShells.holonix ];
+              inputsFrom = [ inputs'.holonix.devShells.default ];
               packages = [
-                pkgs.nodejs-18_x
-                # more packages go here
+                pkgs.nodejs_22
+                pkgs.llvmPackages.clang
+                pkgs.llvmPackages.libclang
+                pkgs.pkg-config
               ];
+              LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
             };
           };
       };

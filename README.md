@@ -4,10 +4,15 @@ This is the rust based hApp (Holochain App) that forms the DAL (Data Access Laye
 
 ## Build Instructions
 
-To build simply run the BUILD command from the root of this repo/dir. This command (batch file) will also run the hApp once it has finished building...
+The toolchain is pinned by `flake.lock`. From the repository root run:
 
-You may alternatively manually build it following these instructions: \
-https://github.com/holochain-open-dev/wiki/wiki/Installing-Holochain--&-Building-hApps-Natively-On-Windows
+```bash
+nix develop . --command npm run build:happ
+```
+
+The Git-backed `.` flake is intentional: do not use `nix develop path:.` in a
+working tree containing `target` or `node_modules`, because Nix will copy those
+directories into its store before evaluating the flake.
 
 ## How To Run
 
@@ -24,14 +29,13 @@ Alternatively if you want to run in a nix shell, follow the instructions below:
 
 > PREREQUISITE: set up the [holochain development environment](https://developer.holochain.org/docs/install/).
 
-Enter the nix shell by running this in the root folder of the repository: 
+Enter the pinned development shell from the repository root:
 
 ```bash
-nix-shell
-npm install
+nix develop .
 ```
 
-**Run all the other instructions in this README from inside this nix-shell, otherwise they won't work**.
+Run the remaining commands in that shell.
 
 ## Running 2 agents
  
@@ -47,6 +51,11 @@ It will also bring up the Holochain Playground for advanced introspection of the
 ```bash
 npm test
 ```
+
+This runs integrity validation unit tests, builds and packs the Holochain 0.7
+DNA/hApp, and then runs the real-conductor Sweettest suite. The older JavaScript
+Tryorama harness is retained only as migration reference: Tryorama 0.19 targets
+Holochain 0.6 and is not the release gate for this Holochain 0.7 hApp.
 
 ## Bootstrapping a network
 
@@ -74,6 +83,6 @@ You will also have its subcomponent `oasis.happ` in the same folder`.
 This repository is using these tools:
 - [NPM Workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces/): npm v7's built-in monorepo capabilities.
 - [hc](https://github.com/holochain/holochain/tree/develop/crates/hc): Holochain CLI to easily manage Holochain development instances.
-- [@holochain/tryorama](https://www.npmjs.com/package/@holochain/tryorama): test framework.
+- [Holochain Sweettest](https://docs.rs/holochain/latest/holochain/sweettest/index.html): real-conductor test framework and release gate.
 - [@holochain/client](https://www.npmjs.com/package/@holochain/client): client library to connect to Holochain from the UI.
 - [@holochain-playground/cli](https://www.npmjs.com/package/@holochain-playground/cli): introspection tooling to understand what's going on in the Holochain nodes.

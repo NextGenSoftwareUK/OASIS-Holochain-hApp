@@ -1,423 +1,133 @@
-pub mod avatar;
-pub use avatar::*;
 use hdi::prelude::*;
+use serde_json::{Map, Value};
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct Avatar {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    #[serde(flatten)] pub fields: Map<String, Value>,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct AvatarDetail {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    #[serde(flatten)] pub fields: Map<String, Value>,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct Holon {
+    pub id: String,
+    #[serde(default)] pub parent_holon_id: Value,
+    #[serde(default)] pub provider_unique_storage_key: Value,
+    #[serde(default)] pub meta_data: Value,
+    #[serde(default)] pub custom_key: Value,
+    #[serde(flatten)] pub fields: Map<String, Value>,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct HyperDriveMutation {
+    pub operation_id: String,
+    pub avatar_id: String,
+    pub entity_id: String,
+    pub entity_type: String,
+    pub kind: u8,
+    pub version_id: String,
+    pub payload_json: Option<String>,
+}
+
+impl HyperDriveMutation {
+    fn validate(&self) -> ValidateCallbackResult {
+        if [&self.operation_id, &self.avatar_id, &self.entity_id, &self.entity_type, &self.version_id]
+            .iter().any(|value| value.trim().is_empty()) {
+            return ValidateCallbackResult::Invalid("HyperDrive identifiers and entity type are required".into());
+        }
+        if self.kind > 1 {
+            return ValidateCallbackResult::Invalid("HyperDrive kind must be 0 (upsert) or 1 (delete)".into());
+        }
+        if self.kind == 0 && self.payload_json.as_deref().map(str::trim).filter(|v| !v.is_empty()).is_none() {
+            return ValidateCallbackResult::Invalid("HyperDrive upserts require a payload".into());
+        }
+        ValidateCallbackResult::Valid
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
-#[hdk_entry_defs]
+#[hdk_entry_types]
 #[unit_enum(UnitEntryTypes)]
 pub enum EntryTypes {
-    Avatar(Avatar),
+    Avatar(Avatar), AvatarDetail(AvatarDetail), Holon(Holon), HyperDriveMutation(HyperDriveMutation),
 }
+
 #[derive(Serialize, Deserialize)]
 #[hdk_link_types]
 pub enum LinkTypes {
-    AvatarUpdates,
-    AllAvatars,
-    AllAvatarsByUsername
+    AvatarById, AvatarByUsername, AvatarByEmail, AllAvatars,
+    AvatarDetailById, AvatarDetailByUsername, AvatarDetailByEmail, AllAvatarDetails,
+    HolonById, HolonByParentId, HolonByProviderKey, HolonByCustomKey, HolonByMetadata, AllHolons,
+    HyperDriveOperations, HyperDriveEntityVersions,
 }
+
 #[hdk_extern]
-pub fn genesis_self_check(
-    _data: GenesisSelfCheckData,
-) -> ExternResult<ValidateCallbackResult> {
-    Ok(ValidateCallbackResult::Valid)
+pub fn genesis_self_check(_: GenesisSelfCheckData) -> ExternResult<ValidateCallbackResult> { Ok(ValidateCallbackResult::Valid) }
+
+pub fn validate_agent_joining(_: AgentPubKey, _: &Option<MembraneProof>) -> ExternResult<ValidateCallbackResult> { Ok(ValidateCallbackResult::Valid) }
+
+fn validate_entry(entry: EntryTypes, updating: bool) -> ValidateCallbackResult {
+    match entry {
+        EntryTypes::Avatar(ref a) if ["password", "jwt_token", "refresh_token", "refresh_tokens", "reset_token", "verification_token"]
+            .iter().any(|key| a.fields.contains_key(*key)) => ValidateCallbackResult::Invalid("Authentication secrets must never be published to the Holochain DHT".into()),
+        EntryTypes::Avatar(a) if a.id.trim().is_empty() || a.username.trim().is_empty() => ValidateCallbackResult::Invalid("Avatar id and username are required".into()),
+        EntryTypes::AvatarDetail(a) if a.id.trim().is_empty() || a.username.trim().is_empty() => ValidateCallbackResult::Invalid("Avatar detail id and username are required".into()),
+        EntryTypes::Holon(h) if h.id.trim().is_empty() => ValidateCallbackResult::Invalid("Holon id is required".into()),
+        EntryTypes::HyperDriveMutation(_) if updating => ValidateCallbackResult::Invalid("HyperDrive mutations are immutable".into()),
+        EntryTypes::HyperDriveMutation(m) => m.validate(),
+        _ => ValidateCallbackResult::Valid,
+    }
 }
-pub fn validate_agent_joining(
-    _agent_pub_key: AgentPubKey,
-    _membrane_proof: &Option<MembraneProof>,
-) -> ExternResult<ValidateCallbackResult> {
-    Ok(ValidateCallbackResult::Valid)
-}
+
 #[hdk_extern]
 pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
-    match op.flattened::<EntryTypes, LinkTypes>()? {
-        FlatOp::StoreEntry(store_entry) => {
-            match store_entry {
-                OpEntry::CreateEntry { app_entry, action } => {
-                    match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
-                                EntryCreationAction::Create(action),
-                                avatar,
-                            )
-                        }
-                    }
-                }
-                OpEntry::UpdateEntry { app_entry, action, .. } => {
-                    match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
-                                EntryCreationAction::Update(action),
-                                avatar,
-                            )
-                        }
-                    }
-                }
-                _ => Ok(ValidateCallbackResult::Valid),
-            }
-        }
-        FlatOp::RegisterUpdate(update_entry) => {
-            match update_entry {
-                OpUpdate::Entry {
-                    original_action,
-                    original_app_entry,
-                    app_entry,
-                    action,
-                } => {
-                    match (app_entry, original_app_entry) {
-                        (
-                            EntryTypes::Avatar(avatar),
-                            EntryTypes::Avatar(original_avatar),
-                        ) => {
-                            validate_update_avatar(
-                                action,
-                                avatar,
-                                original_action,
-                                original_avatar,
-                            )
-                        }
-                        _ => {
-                            Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "Original and updated entry types must be the same"
-                                        .to_string(),
-                                ),
-                            )
-                        }
-                    }
-                }
-                _ => Ok(ValidateCallbackResult::Valid),
-            }
-        }
-        FlatOp::RegisterDelete(delete_entry) => {
-            match delete_entry {
-                OpDelete::Entry { original_action, original_app_entry, action } => {
-                    match original_app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_delete_avatar(action, original_action, avatar)
-                        }
-                    }
-                }
-                _ => Ok(ValidateCallbackResult::Valid),
-            }
-        }
-        FlatOp::RegisterCreateLink {
-            link_type,
-            base_address,
-            target_address,
-            tag,
-            action,
-        } => {
-            match link_type {
-                LinkTypes::AvatarUpdates => {
-                    validate_create_link_avatar_updates(
-                        action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatars => {
-                    validate_create_link_all_avatars(
-                        action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatarsByUsername => {
-                    validate_create_link_all_avatars_by_username(
-                        action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
+    let result = match op.flattened::<EntryTypes, LinkTypes>()? {
+        FlatOp::CreateEntry(OpEntry::CreateEntry { app_entry, .. }) => validate_entry(app_entry, false),
+        FlatOp::CreateEntry(OpEntry::UpdateEntry { app_entry, .. }) => validate_entry(app_entry, true),
+        FlatOp::Update(OpUpdate::Entry { app_entry, .. }) => validate_entry(app_entry, true),
+        FlatOp::CreateRecord(OpRecord::CreateEntry { app_entry, .. }) => validate_entry(app_entry, false),
+        FlatOp::CreateRecord(OpRecord::UpdateEntry { app_entry, .. }) => validate_entry(app_entry, true),
+        FlatOp::AgentActivity(ref activity) => match activity {
+            OpActivity::CreateAgent { action, agent } => {
+                let prev = action.prev_action().ok_or_else(|| wasm_error!(WasmErrorInner::Guest("expected prior action".into())))?.clone();
+                let previous = must_get_action(prev)?;
+                match &previous.action().data {
+                    ActionData::AgentValidationPkg(AgentValidationPkgData { membrane_proof, .. }) => validate_agent_joining(agent.clone(), membrane_proof)?,
+                    _ => ValidateCallbackResult::Invalid("CreateAgent must follow AgentValidationPkg".into()),
                 }
             }
-        }
-        FlatOp::RegisterDeleteLink {
-            link_type,
-            base_address,
-            target_address,
-            tag,
-            original_action,
-            action,
-        } => {
-            match link_type {
-                LinkTypes::AvatarUpdates => {
-                    validate_delete_link_avatar_updates(
-                        action,
-                        original_action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatars => {
-                    validate_delete_link_all_avatars(
-                        action,
-                        original_action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-                LinkTypes::AllAvatarsByUsername => {
-                    validate_delete_link_all_avatars_by_username(
-                        action,
-                        original_action,
-                        base_address,
-                        target_address,
-                        tag,
-                    )
-                }
-            }
-        }
-        FlatOp::StoreRecord(store_record) => {
-            match store_record {
-                OpRecord::CreateEntry { app_entry, action } => {
-                    match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            validate_create_avatar(
-                                EntryCreationAction::Create(action),
-                                avatar,
-                            )
-                        }
-                    }
-                }
-                OpRecord::UpdateEntry {
-                    original_action_hash,
-                    app_entry,
-                    action,
-                    ..
-                } => {
-                    let original_record = must_get_valid_record(original_action_hash)?;
-                    let original_action = original_record.action().clone();
-                    let original_action = match original_action {
-                        Action::Create(create) => EntryCreationAction::Create(create),
-                        Action::Update(update) => EntryCreationAction::Update(update),
-                        _ => {
-                            return Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "Original action for an update must be a Create or Update action"
-                                        .to_string(),
-                                ),
-                            );
-                        }
-                    };
-                    match app_entry {
-                        EntryTypes::Avatar(avatar) => {
-                            let result = validate_create_avatar(
-                                EntryCreationAction::Update(action.clone()),
-                                avatar.clone(),
-                            )?;
-                            if let ValidateCallbackResult::Valid = result {
-                                let original_avatar: Option<Avatar> = original_record
-                                    .entry()
-                                    .to_app_option()
-                                    .map_err(|e| wasm_error!(e))?;
-                                let original_avatar = match original_avatar {
-                                    Some(avatar) => avatar,
-                                    None => {
-                                        return Ok(
-                                            ValidateCallbackResult::Invalid(
-                                                "The updated entry type must be the same as the original entry type"
-                                                    .to_string(),
-                                            ),
-                                        );
-                                    }
-                                };
-                                validate_update_avatar(
-                                    action,
-                                    avatar,
-                                    original_action,
-                                    original_avatar,
-                                )
-                            } else {
-                                Ok(result)
-                            }
-                        }
-                    }
-                }
-                OpRecord::DeleteEntry { original_action_hash, action, .. } => {
-                    let original_record = must_get_valid_record(original_action_hash)?;
-                    let original_action = original_record.action().clone();
-                    let original_action = match original_action {
-                        Action::Create(create) => EntryCreationAction::Create(create),
-                        Action::Update(update) => EntryCreationAction::Update(update),
-                        _ => {
-                            return Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "Original action for a delete must be a Create or Update action"
-                                        .to_string(),
-                                ),
-                            );
-                        }
-                    };
-                    let app_entry_type = match original_action.entry_type() {
-                        EntryType::App(app_entry_type) => app_entry_type,
-                        _ => {
-                            return Ok(ValidateCallbackResult::Valid);
-                        }
-                    };
-                    let entry = match original_record.entry().as_option() {
-                        Some(entry) => entry,
-                        None => {
-                            if original_action.entry_type().visibility().is_public() {
-                                return Ok(
-                                    ValidateCallbackResult::Invalid(
-                                        "Original record for a delete of a public entry must contain an entry"
-                                            .to_string(),
-                                    ),
-                                );
-                            } else {
-                                return Ok(ValidateCallbackResult::Valid);
-                            }
-                        }
-                    };
-                    let original_app_entry = match EntryTypes::deserialize_from_type(
-                        app_entry_type.zome_index.clone(),
-                        app_entry_type.entry_index.clone(),
-                        &entry,
-                    )? {
-                        Some(app_entry) => app_entry,
-                        None => {
-                            return Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "Original app entry must be one of the defined entry types for this zome"
-                                        .to_string(),
-                                ),
-                            );
-                        }
-                    };
-                    match original_app_entry {
-                        EntryTypes::Avatar(original_avatar) => {
-                            validate_delete_avatar(
-                                action,
-                                original_action,
-                                original_avatar,
-                            )
-                        }
-                    }
-                }
-                OpRecord::CreateLink {
-                    base_address,
-                    target_address,
-                    tag,
-                    link_type,
-                    action,
-                } => {
-                    match link_type {
-                        LinkTypes::AvatarUpdates => {
-                            validate_create_link_avatar_updates(
-                                action,
-                                base_address,
-                                target_address,
-                                tag,
-                            )
-                        }
-                        LinkTypes::AllAvatars => {
-                            validate_create_link_all_avatars(
-                                action,
-                                base_address,
-                                target_address,
-                                tag,
-                            )
-                        }
-                        LinkTypes::AllAvatarsByUsername => {
-                            validate_create_link_all_avatars_by_username(
-                                action,
-                                base_address,
-                                target_address,
-                                tag,
-                            )
-                        }
-                    }
-                }
-                OpRecord::DeleteLink { original_action_hash, base_address, action } => {
-                    let record = must_get_valid_record(original_action_hash)?;
-                    let create_link = match record.action() {
-                        Action::CreateLink(create_link) => create_link.clone(),
-                        _ => {
-                            return Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "The action that a DeleteLink deletes must be a CreateLink"
-                                        .to_string(),
-                                ),
-                            );
-                        }
-                    };
-                    let link_type = match LinkTypes::from_type(
-                        create_link.zome_index.clone(),
-                        create_link.link_type.clone(),
-                    )? {
-                        Some(lt) => lt,
-                        None => {
-                            return Ok(ValidateCallbackResult::Valid);
-                        }
-                    };
-                    match link_type {
-                        LinkTypes::AvatarUpdates => {
-                            validate_delete_link_avatar_updates(
-                                action,
-                                create_link.clone(),
-                                base_address,
-                                create_link.target_address,
-                                create_link.tag
-                            )
-                        }
-                        LinkTypes::AllAvatars => {
-                            validate_delete_link_all_avatars(
-                                action,
-                                create_link.clone(),
-                                base_address,
-                                create_link.target_address,
-                                create_link.tag
-                            )
-                        }
-                        LinkTypes::AllAvatarsByUsername => {
-                            validate_delete_link_all_avatars_by_username(
-                                action,
-                                create_link.clone(),
-                                base_address,
-                                create_link.target_address,
-                                create_link.tag
-                            )
-                        }
-                    }
-                }
-                OpRecord::CreatePrivateEntry { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::UpdatePrivateEntry { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::CreateCapClaim { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::CreateCapGrant { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::UpdateCapClaim { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::UpdateCapGrant { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::Dna { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::OpenChain { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::CloseChain { .. } => Ok(ValidateCallbackResult::Valid),
-                OpRecord::InitZomesComplete { .. } => Ok(ValidateCallbackResult::Valid),
-                _ => Ok(ValidateCallbackResult::Valid),
-            }
-        }
-        FlatOp::RegisterAgentActivity(agent_activity) => {
-            match agent_activity {
-                OpActivity::CreateAgent { agent, action } => {
-                    let previous_action = must_get_action(action.prev_action)?;
-                    match previous_action.action() {
-                        Action::AgentValidationPkg(
-                            AgentValidationPkg { membrane_proof, .. },
-                        ) => validate_agent_joining(agent, membrane_proof),
-                        _ => {
-                            Ok(
-                                ValidateCallbackResult::Invalid(
-                                    "The previous action for a `CreateAgent` action must be an `AgentValidationPkg`"
-                                        .to_string(),
-                                ),
-                            )
-                        }
-                    }
-                }
-                _ => Ok(ValidateCallbackResult::Valid),
-            }
-        }
+            _ => ValidateCallbackResult::Valid,
+        },
+        _ => ValidateCallbackResult::Valid,
+    };
+    Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rejects_invalid_hyperdrive_upsert() {
+        let m = HyperDriveMutation { operation_id: "op".into(), avatar_id: "a".into(), entity_id: "e".into(), entity_type: "holon".into(), kind: 0, version_id: "v".into(), payload_json: None };
+        assert!(matches!(m.validate(), ValidateCallbackResult::Invalid(_)));
+    }
+    #[test]
+    fn accepts_hyperdrive_delete_without_payload() {
+        let m = HyperDriveMutation { operation_id: "op".into(), avatar_id: "a".into(), entity_id: "e".into(), entity_type: "holon".into(), kind: 1, version_id: "v".into(), payload_json: None };
+        assert_eq!(m.validate(), ValidateCallbackResult::Valid);
     }
 }

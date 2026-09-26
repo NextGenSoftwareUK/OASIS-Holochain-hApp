@@ -5,12 +5,15 @@ opt-level = "z"
 opt-level = "z"
 
 [workspace]
+resolver = "2"
 members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*"]
 
 [workspace.dependencies]
-hdi = "=0.7.1"
-hdk = "=0.6.1"
+hdi = "=0.8.0"
+hdk = "=0.7.0"
 serde = "1"
+serde_json = "1"
+holochain_serialized_bytes = "=0.0.57"
 
 [workspace.dependencies.oasis]
 path = "dnas/oasis/zomes/coordinator/oasis"
