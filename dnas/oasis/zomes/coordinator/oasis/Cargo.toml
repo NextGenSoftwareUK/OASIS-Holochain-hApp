@@ -17,4 +17,5 @@ oasis_integrity = { workspace = true }
 
 [dev-dependencies]
 holochain = { version = "=0.7.0", default-features = false, features = ["sweettest", "wasmer-wasmi"] }
+holochain_nonce = "=0.7.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
