@@ -134,3 +134,63 @@ pub struct UpdateHolonInput { pub original_action_hash: ActionHash, pub updated_
 #[hdk_extern] pub fn delete_holon_by_provider_key(v: String) -> ExternResult<Record> { delete_latest("holon-provider", &v, LinkTypes::HolonByProviderKey) }
 #[hdk_extern] pub fn delete_holon_by_custom_key(v: String) -> ExternResult<Record> { delete_latest("holon-custom", &v, LinkTypes::HolonByCustomKey) }
 #[hdk_extern] pub fn delete_holon_by_meta_data(v: String) -> ExternResult<Record> { delete_latest("holon-metadata", &v, LinkTypes::HolonByMetadata) }
+
+// HoloNET ORM collections (HoloNETCollection / HoloNETObservableCollection). Coordinator-only: membership is a link from
+// an anchor path to each avatar's action hash, reusing the AllAvatars link type so the integrity zome (and DNA hash) is unchanged.
+fn collection_base(anchor: &str) -> ExternResult<EntryHash> {
+    index_base("avatar-collection", if anchor.trim().is_empty() { "default" } else { anchor })
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AvatarCollectionInput { pub collection_anchor: String, pub entry_action_hash: ActionHash }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AvatarCollectionBatchInput {
+    pub collection_anchor: String,
+    #[serde(default)] pub added: Vec<Avatar>,
+    #[serde(default)] pub removed: Vec<ActionHash>,
+    #[serde(default)] pub updated: Vec<UpdateAvatarInput>,
+}
+#[hdk_extern]
+pub fn get_avatar_collection(collection_anchor: String) -> ExternResult<Vec<Record>> {
+    let links = get_links(LinkQuery::try_new(collection_base(&collection_anchor)?, LinkTypes::AllAvatars)?, GetStrategy::default())?;
+    let mut records = Vec::new();
+    for link in links {
+        let hash = ActionHash::try_from(link.target).map_err(|_| wasm_error!(WasmErrorInner::Guest("collection target is not an action hash".into())))?;
+        // Follow updates so the collection always returns each avatar's latest version.
+        if let Some(details) = get_details(hash.clone(), GetOptions::default())? {
+            let latest = match details {
+                Details::Record(d) => d.updates.iter().max_by_key(|u| u.action().timestamp()).map(|u| u.as_hash().clone()).unwrap_or(hash),
+                _ => hash,
+            };
+            if let Some(record) = get(latest, GetOptions::default())? { records.push(record); }
+        }
+    }
+    records.sort_by_key(|record| record.action().timestamp());
+    Ok(records)
+}
+#[hdk_extern]
+pub fn add_avatar_to_collection(input: AvatarCollectionInput) -> ExternResult<()> {
+    create_link(collection_base(&input.collection_anchor)?, input.entry_action_hash, LinkTypes::AllAvatars, ())?;
+    Ok(())
+}
+#[hdk_extern]
+pub fn remove_avatar_from_collection(input: AvatarCollectionInput) -> ExternResult<()> {
+    let target = AnyLinkableHash::from(input.entry_action_hash);
+    for link in get_links(LinkQuery::try_new(collection_base(&input.collection_anchor)?, LinkTypes::AllAvatars)?, GetStrategy::default())? {
+        if link.target == target { delete_link(link.create_link_hash, GetOptions::default())?; }
+    }
+    Ok(())
+}
+#[hdk_extern]
+pub fn batch_update_avatar_collection(input: AvatarCollectionBatchInput) -> ExternResult<Vec<Record>> {
+    let mut saved = Vec::new();
+    for avatar in input.added {
+        let record = create_avatar_record(avatar)?;
+        add_avatar_to_collection(AvatarCollectionInput { collection_anchor: input.collection_anchor.clone(), entry_action_hash: record.action_address().clone() })?;
+        saved.push(record);
+    }
+    for hash in input.removed {
+        remove_avatar_from_collection(AvatarCollectionInput { collection_anchor: input.collection_anchor.clone(), entry_action_hash: hash })?;
+    }
+    for update in input.updated { saved.push(update_entry_avatar(update)?); }
+    Ok(saved)
+}
