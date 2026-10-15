@@ -61,14 +61,20 @@ pub fn update_entry_avatar(input: UpdateAvatarInput) -> ExternResult<Record> {
     get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("updated avatar unavailable".into())))
 }
 
-fn delete_latest(kind: &str, value: &str, link_type: LinkTypes) -> ExternResult<ActionHash> {
-    let record = latest(kind, value, link_type)?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("record not found".into())))?;
-    delete_entry(record.action_address().clone())
+fn delete_record(hash: ActionHash) -> ExternResult<Record> {
+    let record = get(hash.clone(), GetOptions::default())?
+        .ok_or_else(|| wasm_error!(WasmErrorInner::Guest("record not found".into())))?;
+    delete_entry(hash)?;
+    Ok(record)
 }
-#[hdk_extern] pub fn delete_entry_avatar(hash: ActionHash) -> ExternResult<ActionHash> { delete_entry(hash) }
-#[hdk_extern] pub fn delete_avatar_by_id(v: String) -> ExternResult<ActionHash> { delete_latest("avatar-id", &v, LinkTypes::AvatarById) }
-#[hdk_extern] pub fn delete_avatar_by_username(v: String) -> ExternResult<ActionHash> { delete_latest("avatar-username", &v, LinkTypes::AvatarByUsername) }
-#[hdk_extern] pub fn delete_avatar_by_email(v: String) -> ExternResult<ActionHash> { delete_latest("avatar-email", &v, LinkTypes::AvatarByEmail) }
+fn delete_latest(kind: &str, value: &str, link_type: LinkTypes) -> ExternResult<Record> {
+    let record = latest(kind, value, link_type)?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("record not found".into())))?;
+    delete_record(record.action_address().clone())
+}
+#[hdk_extern] pub fn delete_entry_avatar(hash: ActionHash) -> ExternResult<Record> { delete_record(hash) }
+#[hdk_extern] pub fn delete_avatar_by_id(v: String) -> ExternResult<Record> { delete_latest("avatar-id", &v, LinkTypes::AvatarById) }
+#[hdk_extern] pub fn delete_avatar_by_username(v: String) -> ExternResult<Record> { delete_latest("avatar-username", &v, LinkTypes::AvatarByUsername) }
+#[hdk_extern] pub fn delete_avatar_by_email(v: String) -> ExternResult<Record> { delete_latest("avatar-email", &v, LinkTypes::AvatarByEmail) }
 
 fn create_avatar_detail_record(detail: AvatarDetail) -> ExternResult<Record> {
     let hash = create_entry(EntryTypes::AvatarDetail(detail.clone()))?;
@@ -91,7 +97,7 @@ fn index_avatar_detail(detail: &AvatarDetail, hash: ActionHash) -> ExternResult<
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateAvatarDetailInput { pub original_action_hash: ActionHash, pub updated_entry: AvatarDetail }
 #[hdk_extern] pub fn update_entry_avatar_detail(v: UpdateAvatarDetailInput) -> ExternResult<Record> { let hash = update_entry(v.original_action_hash, &EntryTypes::AvatarDetail(v.updated_entry.clone()))?; index_avatar_detail(&v.updated_entry, hash.clone())?; get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("updated avatar detail unavailable".into()))) }
-#[hdk_extern] pub fn delete_entry_avatar_detail(hash: ActionHash) -> ExternResult<ActionHash> { delete_entry(hash) }
+#[hdk_extern] pub fn delete_entry_avatar_detail(hash: ActionHash) -> ExternResult<Record> { delete_record(hash) }
 
 fn value_key(value: &Value) -> String { value.to_string() }
 fn create_holon_record(holon: Holon) -> ExternResult<Record> {
@@ -123,8 +129,8 @@ fn index_holon(holon: &Holon, hash: ActionHash) -> ExternResult<()> {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateHolonInput { pub original_action_hash: ActionHash, pub updated_entry: Holon }
 #[hdk_extern] pub fn update_entry_holon(v: UpdateHolonInput) -> ExternResult<Record> { let hash = update_entry(v.original_action_hash, &EntryTypes::Holon(v.updated_entry.clone()))?; index_holon(&v.updated_entry, hash.clone())?; get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("updated holon unavailable".into()))) }
-#[hdk_extern] pub fn delete_entry_holon(hash: ActionHash) -> ExternResult<ActionHash> { delete_entry(hash) }
-#[hdk_extern] pub fn delete_holon_by_id(v: String) -> ExternResult<ActionHash> { delete_latest("holon-id", &v, LinkTypes::HolonById) }
-#[hdk_extern] pub fn delete_holon_by_provider_key(v: String) -> ExternResult<ActionHash> { delete_latest("holon-provider", &v, LinkTypes::HolonByProviderKey) }
-#[hdk_extern] pub fn delete_holon_by_custom_key(v: String) -> ExternResult<ActionHash> { delete_latest("holon-custom", &v, LinkTypes::HolonByCustomKey) }
-#[hdk_extern] pub fn delete_holon_by_meta_data(v: String) -> ExternResult<ActionHash> { delete_latest("holon-metadata", &v, LinkTypes::HolonByMetadata) }
+#[hdk_extern] pub fn delete_entry_holon(hash: ActionHash) -> ExternResult<Record> { delete_record(hash) }
+#[hdk_extern] pub fn delete_holon_by_id(v: String) -> ExternResult<Record> { delete_latest("holon-id", &v, LinkTypes::HolonById) }
+#[hdk_extern] pub fn delete_holon_by_provider_key(v: String) -> ExternResult<Record> { delete_latest("holon-provider", &v, LinkTypes::HolonByProviderKey) }
+#[hdk_extern] pub fn delete_holon_by_custom_key(v: String) -> ExternResult<Record> { delete_latest("holon-custom", &v, LinkTypes::HolonByCustomKey) }
+#[hdk_extern] pub fn delete_holon_by_meta_data(v: String) -> ExternResult<Record> { delete_latest("holon-metadata", &v, LinkTypes::HolonByMetadata) }
