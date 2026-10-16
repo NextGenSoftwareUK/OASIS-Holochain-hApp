@@ -3,9 +3,17 @@ use oasis_integrity::*;
 use serde_json::Value;
 
 pub mod hyperdrive;
+pub mod hypernet;
 
 #[hdk_extern]
-pub fn init() -> ExternResult<InitCallbackResult> { Ok(InitCallbackResult::Pass) }
+// Was Ok(Pass) only; now also grants recv_remote_signal so HyperNET peers can message this cell.
+//pub fn init() -> ExternResult<InitCallbackResult> { Ok(InitCallbackResult::Pass) }
+pub fn init() -> ExternResult<InitCallbackResult> {
+    if let Err(e) = hypernet::grant_remote_signals() {
+        debug!("HyperNET: could not grant recv_remote_signal: {e:?}");
+    }
+    Ok(InitCallbackResult::Pass)
+}
 
 fn index_base(kind: &str, value: &str) -> ExternResult<EntryHash> {
     Path::from(format!("oasis.{kind}.{}", value.replace('.', "_dot_").replace('/', "_slash_"))).path_entry_hash()

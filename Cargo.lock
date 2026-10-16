@@ -4828,6 +4828,7 @@ dependencies = [
  "holochain",
  "oasis_integrity",
  "serde",
+ "serde_bytes",
  "serde_json",
  "tokio",
 ]
