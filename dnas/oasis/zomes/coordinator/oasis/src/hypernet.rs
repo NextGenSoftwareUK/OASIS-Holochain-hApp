@@ -102,7 +102,7 @@ pub fn hypernet_join(input: HyperNETJoinInput) -> ExternResult<Vec<HyperNETPeer>
 
     let targets = others(&input.session)?;
     if !targets.is_empty() {
-        send_remote_signal(signal("joined", &input.session, &input.player_name, None)?, targets)?;
+        send_to(signal("joined", &input.session, &input.player_name, None)?, targets)?;
     }
     peers(&input.session)
 }
@@ -120,7 +120,7 @@ pub fn hypernet_leave(session: String) -> ExternResult<()> {
     }
     let targets = others(&session)?;
     if !targets.is_empty() {
-        send_remote_signal(signal("left", &session, &player_name, None)?, targets)?;
+        send_to(signal("left", &session, &player_name, None)?, targets)?;
     }
     Ok(())
 }
@@ -141,16 +141,17 @@ pub fn hypernet_send(input: HyperNETSendInput) -> ExternResult<u32> {
     };
     let count = targets.len() as u32;
     if count > 0 {
-        send_remote_signal(signal("message", &input.session, "", Some(input.payload))?, targets)?;
+        send_to(signal("message", &input.session, "", Some(input.payload))?, targets)?;
     }
     Ok(count)
 }
 
 /// A remote signal arrived from a peer: hand it to this cell's client (HoloNET raises it as an app signal).
 #[hdk_extern]
-pub fn recv_remote_signal(signal: ExternIO) -> ExternResult<()> {
-    let s: HyperNETSignal = signal.decode().map_err(|e| wasm_error!(WasmErrorInner::Guest(format!("not a HyperNET signal: {e:?}"))))?;
-    emit_signal(s)
+/// The conductor hands over the signal exactly as send_remote_signal encoded it, so take the struct itself
+/// (an ExternIO parameter fails to deserialize every real remote signal).
+pub fn recv_remote_signal(signal: HyperNETSignal) -> ExternResult<()> {
+    emit_signal(signal)
 }
 
 /// Lets any peer deliver remote signals to this cell (Holochain requires a grant for recv_remote_signal).
@@ -163,5 +164,14 @@ pub fn grant_remote_signals() -> ExternResult<()> {
         access: CapAccess::Unrestricted,
         functions: GrantedFunctions::Listed(functions),
     })?;
+    Ok(())
+}
+
+/// One send_remote_signal per player: given several agents on the same conductor, Holochain delivers a multi-target
+/// signal to only one of them (seen on 0.7.1 with three local agents), so never rely on a multi-target send.
+fn send_to(signal: HyperNETSignal, targets: Vec<AgentPubKey>) -> ExternResult<()> {
+    for target in targets {
+        send_remote_signal(signal.clone(), vec![target])?;
+    }
     Ok(())
 }
