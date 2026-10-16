@@ -12,6 +12,7 @@ hdk = { workspace = true }
 
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_bytes = "0.11"
 
 oasis_integrity = { workspace = true } 
 
