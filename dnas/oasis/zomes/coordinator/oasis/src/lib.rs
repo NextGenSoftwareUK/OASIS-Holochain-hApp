@@ -82,7 +82,27 @@ fn delete_latest(kind: &str, value: &str, link_type: LinkTypes) -> ExternResult<
     delete_record(record.action_address().clone())
 }
 #[hdk_extern] pub fn delete_entry_avatar(hash: ActionHash) -> ExternResult<Record> { delete_record(hash) }
-#[hdk_extern] pub fn delete_avatar_by_id(v: String) -> ExternResult<Record> { delete_latest("avatar-id", &v, LinkTypes::AvatarById) }
+fn delete_linked_actions(records: &[Record]) -> ExternResult<()> {
+    let mut deleted = std::collections::HashSet::new();
+    for record in records {
+        let hash = record.action_address().clone();
+        if deleted.insert(hash.clone()) {
+            delete_entry(hash)?;
+        }
+    }
+    Ok(())
+}
+
+#[hdk_extern]
+pub fn delete_avatar_by_id(id: String) -> ExternResult<Record> {
+    let avatars = linked_records("avatar-id", &id, LinkTypes::AvatarById)?;
+    let current = avatars.last().cloned()
+        .ok_or_else(|| wasm_error!(WasmErrorInner::Guest("avatar not found".into())))?;
+    let details = linked_records("detail-id", &id, LinkTypes::AvatarDetailById)?;
+    delete_linked_actions(&details)?;
+    delete_linked_actions(&avatars)?;
+    Ok(current)
+}
 #[hdk_extern] pub fn delete_avatar_by_username(v: String) -> ExternResult<Record> { delete_latest("avatar-username", &v, LinkTypes::AvatarByUsername) }
 #[hdk_extern] pub fn delete_avatar_by_email(v: String) -> ExternResult<Record> { delete_latest("avatar-email", &v, LinkTypes::AvatarByEmail) }
 
@@ -140,7 +160,14 @@ fn index_holon(holon: &Holon, hash: ActionHash) -> ExternResult<()> {
 pub struct UpdateHolonInput { pub original_action_hash: ActionHash, pub updated_entry: Holon }
 #[hdk_extern] pub fn update_entry_holon(v: UpdateHolonInput) -> ExternResult<Record> { let hash = update_entry(v.original_action_hash, &EntryTypes::Holon(v.updated_entry.clone()))?; index_holon(&v.updated_entry, hash.clone())?; get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("updated holon unavailable".into()))) }
 #[hdk_extern] pub fn delete_entry_holon(hash: ActionHash) -> ExternResult<Record> { delete_record(hash) }
-#[hdk_extern] pub fn delete_holon_by_id(v: String) -> ExternResult<Record> { delete_latest("holon-id", &v, LinkTypes::HolonById) }
+#[hdk_extern]
+pub fn delete_holon_by_id(id: String) -> ExternResult<Record> {
+    let records = linked_records("holon-id", &id, LinkTypes::HolonById)?;
+    let current = records.last().cloned()
+        .ok_or_else(|| wasm_error!(WasmErrorInner::Guest("holon not found".into())))?;
+    delete_linked_actions(&records)?;
+    Ok(current)
+}
 #[hdk_extern] pub fn delete_holon_by_provider_key(v: String) -> ExternResult<Record> { delete_latest("holon-provider", &v, LinkTypes::HolonByProviderKey) }
 #[hdk_extern] pub fn delete_holon_by_custom_key(v: String) -> ExternResult<Record> { delete_latest("holon-custom", &v, LinkTypes::HolonByCustomKey) }
 #[hdk_extern] pub fn delete_holon_by_meta_data(v: String) -> ExternResult<Record> { delete_latest("holon-metadata", &v, LinkTypes::HolonByMetadata) }

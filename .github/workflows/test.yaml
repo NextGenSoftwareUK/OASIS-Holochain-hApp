@@ -1,9 +1,9 @@
 name: "test"
 on:
   # Trigger the workflow on push or pull request,
-  # but only for the main branch
-  push: 
-    branches: [ main, develop ]
+  # Keep the provider qualification branch isolated from the shared branches.
+  push:
+    branches: [ main, develop, work/hyperdrive-provider-completion ]
   pull_request:
     branches: [ main, develop ]
 
@@ -24,3 +24,19 @@ jobs:
         run: |
           nix develop . --command bash -lc "npm ci && npm test"
 
+      - name: Record the tested bundle identity
+        if: github.ref == 'refs/heads/work/hyperdrive-provider-completion'
+        run: |
+          sha="$(sha256sum workdir/oasis.happ | cut -d ' ' -f 1)"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --arg artifactSha256 "$sha" \
+            '{sourceCommit: $sourceCommit, artifactSha256: $artifactSha256}' > workdir/build-manifest.json
+
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/work/hyperdrive-provider-completion'
+        with:
+          name: verified-holooasis-happ
+          path: |
+            workdir/oasis.happ
+            workdir/build-manifest.json
+          if-no-files-found: error
+          retention-days: 7
