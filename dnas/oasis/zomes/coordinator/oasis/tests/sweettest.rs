@@ -58,7 +58,7 @@ async fn identity_deletion_removes_prior_revisions_and_avatar_detail() {
     let cell = &app.into_cells()[0];
     let zome = cell.zome("oasis");
 
-    #[derive(Serialize)]
+    #[derive(Debug, Serialize)]
     struct Update<T> {
         original_action_hash: ActionHash,
         updated_entry: T,
