@@ -46,7 +46,75 @@ fn latest(kind: &str, value: &str, link_type: LinkTypes) -> ExternResult<Option<
     Ok(linked_records(kind, value, link_type)?.pop())
 }
 
+fn wallet_field_contains_credentials(field: &Value) -> ExternResult<bool> {
+    let decoded;
+    let field = match field {
+        Value::String(text) if text.trim().is_empty() => return Ok(false),
+        Value::String(text) => {
+            decoded = serde_json::from_str(text)
+                .map_err(|_| wasm_error!(WasmErrorInner::Guest("invalid provider wallet JSON".into())))?;
+            &decoded
+        }
+        other => other,
+    };
+
+    let mut pending = vec![field];
+    while let Some(value) = pending.pop() {
+        match value {
+            Value::Array(values) => pending.extend(values),
+            Value::Object(fields) => {
+                for (key, value) in fields {
+                    let credential = ["privateKey", "private_key", "secretRecoveryPhrase", "secret_recovery_phrase"]
+                        .iter()
+                        .any(|name| key.eq_ignore_ascii_case(name));
+                    if credential && !value.is_null() && value.as_str() != Some("") {
+                        return Ok(true);
+                    }
+                    pending.push(value);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(false)
+}
+
+fn require_public_avatar_wallets(avatar: &Avatar) -> ExternResult<()> {
+    for key in ["provider_wallets", "providerWallets", "ProviderWallets"] {
+        if let Some(field) = avatar.fields.get(key) {
+            if wallet_field_contains_credentials(field)? {
+                return Err(wasm_error!(WasmErrorInner::Guest(
+                    "HoloOASIS public avatar entries cannot store wallet signing credentials".into()
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod public_avatar_wallet_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn checks_structured_and_serialized_wallets() {
+        let private_key = json!({ "HoloOASIS": [{ "PrivateKey": "synthetic-only" }] });
+        let recovery = json!({ "HoloOASIS": [{ "secret_recovery_phrase": "synthetic-only" }] });
+        for wallets in [private_key, recovery] {
+            assert!(wallet_field_contains_credentials(&wallets).unwrap());
+            assert!(wallet_field_contains_credentials(&Value::String(wallets.to_string())).unwrap());
+        }
+
+        let public = json!({ "HoloOASIS": [{ "WalletAddress": "public-test-address", "privateKey": null, "SecretRecoveryPhrase": "" }] });
+        assert!(!wallet_field_contains_credentials(&public).unwrap());
+        assert!(!wallet_field_contains_credentials(&Value::String(public.to_string())).unwrap());
+        assert!(wallet_field_contains_credentials(&Value::String("{".into())).is_err());
+    }
+}
+
 fn create_avatar_record(avatar: Avatar) -> ExternResult<Record> {
+    require_public_avatar_wallets(&avatar)?;
     let hash = create_entry(EntryTypes::Avatar(avatar.clone()))?;
     index_avatar(&avatar, hash.clone())?;
     get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("created avatar unavailable".into())))
@@ -71,6 +139,7 @@ fn index_avatar(avatar: &Avatar, hash: ActionHash) -> ExternResult<()> {
 pub struct UpdateAvatarInput { pub original_action_hash: ActionHash, pub updated_entry: Avatar }
 #[hdk_extern]
 pub fn update_entry_avatar(input: UpdateAvatarInput) -> ExternResult<Record> {
+    require_public_avatar_wallets(&input.updated_entry)?;
     let hash = update_entry(input.original_action_hash, &EntryTypes::Avatar(input.updated_entry.clone()))?;
     index_avatar(&input.updated_entry, hash.clone())?;
     get(hash, GetOptions::default())?.ok_or_else(|| wasm_error!(WasmErrorInner::Guest("updated avatar unavailable".into())))

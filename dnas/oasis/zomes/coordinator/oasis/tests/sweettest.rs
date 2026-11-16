@@ -134,3 +134,50 @@ async fn identity_deletion_removes_prior_revisions_and_avatar_detail() {
     assert!(holon.is_none());
     assert_eq!(all.iter().map(Record::action_address).collect::<Vec<_>>(), vec![kept.action_address()]);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn conductor_rejects_wallet_credentials_without_changing_public_avatar() {
+    use serde_json::json;
+
+    let dna = SweetDnaFile::from_bundle(&dna_path()).await.unwrap();
+    let mut conductor = SweetConductor::standard().await;
+    let app = conductor.setup_app("oasis", [&dna]).await.unwrap();
+    let cells = app.into_cells();
+    let zome = cells[0].zome("oasis");
+
+    let mut rejected_avatar = avatar("wallet-rejected");
+    rejected_avatar.fields.insert("provider_wallets".into(), json!({
+        "HoloOASIS": [{ "PrivateKey": "synthetic-only" }]
+    }));
+    for function in ["create_entry_avatar", "create_avatar"] {
+        let rejected = conductor.call_fallible::<_, Record>(&zome, function, rejected_avatar.clone()).await;
+        assert!(format!("{:?}", rejected.expect_err("private key must be rejected"))
+            .contains("cannot store wallet signing credentials"));
+    }
+    let absent: Option<Record> = conductor.call(&zome, "get_avatar_by_id", "wallet-rejected".to_string()).await;
+    assert!(absent.is_none());
+
+    let mut public = avatar("wallet-public");
+    public.fields.insert("provider_wallets".into(), json!({
+        "HoloOASIS": [{ "WalletAddress": "public-test-address" }]
+    }));
+    let created: Record = conductor.call(&zome, "create_entry_avatar", public.clone()).await;
+    let mut unsafe_update = public;
+    unsafe_update.fields.insert("provider_wallets".into(), json!(json!({
+        "HoloOASIS": [{ "secret_recovery_phrase": "synthetic-only" }]
+    }).to_string()));
+    #[derive(Debug, Serialize)]
+    struct Update {
+        original_action_hash: ActionHash,
+        updated_entry: Avatar,
+    }
+    let input = Update {
+        original_action_hash: created.action_address().clone(),
+        updated_entry: unsafe_update,
+    };
+    let rejected = conductor.call_fallible::<_, Record>(&zome, "update_entry_avatar", input).await;
+    assert!(format!("{:?}", rejected.expect_err("recovery phrase must be rejected"))
+        .contains("cannot store wallet signing credentials"));
+    let unchanged: Option<Record> = conductor.call(&zome, "get_avatar_by_id", "wallet-public".to_string()).await;
+    assert_eq!(unchanged.unwrap().action_address(), created.action_address());
+}
