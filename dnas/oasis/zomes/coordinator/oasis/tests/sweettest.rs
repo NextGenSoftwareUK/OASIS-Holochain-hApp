@@ -120,10 +120,17 @@ async fn identity_deletion_removes_prior_revisions_and_avatar_detail() {
         original_action_hash: original.action_address().clone(),
         updated_entry: updated_holon,
     }).await;
+    let kept_holon: Holon = serde_json::from_value(serde_json::json!({"id": "holon-keep"})).unwrap();
+    let kept: Record = conductor.call(&zome, "create_entry_holon", kept_holon).await;
+    let before: Vec<Record> = conductor.call(&zome, "get_all_holons", ()).await;
+    assert_eq!(
+        before.iter().map(Record::action_address).collect::<Vec<_>>(),
+        vec![original.action_address(), updated.action_address(), kept.action_address()]
+    );
     let deleted: Record = conductor.call(&zome, "delete_holon_by_id", "holon-delete").await;
     assert_eq!(deleted.action_address(), updated.action_address());
     let holon: Option<Record> = conductor.call(&zome, "get_holon_by_id", "holon-delete").await;
     let all: Vec<Record> = conductor.call(&zome, "get_all_holons", ()).await;
     assert!(holon.is_none());
-    assert!(all.is_empty());
+    assert_eq!(all.iter().map(Record::action_address).collect::<Vec<_>>(), vec![kept.action_address()]);
 }

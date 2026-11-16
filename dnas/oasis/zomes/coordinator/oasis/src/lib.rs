@@ -28,11 +28,16 @@ fn index_record(kind: &str, value: &str, target: ActionHash, link_type: LinkType
 
 fn linked_records(kind: &str, value: &str, link_type: LinkTypes) -> ExternResult<Vec<Record>> {
     let links = get_links(LinkQuery::try_new(index_base(kind, value)?, link_type)?, GetStrategy::default())?;
-    let mut records = Vec::new();
-    for link in links {
-        let hash = ActionHash::try_from(link.target).map_err(|_| wasm_error!(WasmErrorInner::Guest("index target is not an action hash".into())))?;
-        if let Some(record) = get(hash, GetOptions::default())? { records.push(record); }
+    if links.is_empty() {
+        return Ok(Vec::new());
     }
+    let inputs = links.into_iter().map(|link| {
+        let hash = ActionHash::try_from(link.target)
+            .map_err(|_| wasm_error!(WasmErrorInner::Guest("index target is not an action hash".into())))?;
+        Ok(GetInput::new(hash.into(), GetOptions::default()))
+    }).collect::<ExternResult<Vec<_>>>()?;
+    let outcomes = HDK.with(|hdk| hdk.borrow().get(inputs))?;
+    let mut records: Vec<_> = outcomes.into_iter().flatten().collect();
     records.sort_by_key(|record| record.action().timestamp());
     Ok(records)
 }
