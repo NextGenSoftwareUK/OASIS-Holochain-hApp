@@ -20,8 +20,17 @@ pub fn apply_hyperdrive_mutation(mutation: HyperDriveMutation) -> ExternResult<R
         let action_hash = ActionHash::try_from(link.target)
             .map_err(|_| wasm_error!(WasmErrorInner::Guest(
                 "HyperDrive operation index target is not an action hash".to_string())))?;
-        return get(action_hash, GetOptions::default())?.ok_or(wasm_error!(
-            WasmErrorInner::Guest("Indexed HyperDrive mutation is unavailable".to_string())));
+        let record = get(action_hash, GetOptions::default())?.ok_or(wasm_error!(
+            WasmErrorInner::Guest("Indexed HyperDrive mutation is unavailable".to_string())))?;
+        let stored: HyperDriveMutation = record.entry().to_app_option()
+            .map_err(|error| wasm_error!(error))?
+            .ok_or(wasm_error!(WasmErrorInner::Guest(
+                "Indexed HyperDrive action has no mutation entry".to_string())))?;
+        if stored != mutation {
+            return Err(wasm_error!(WasmErrorInner::Guest(
+                "HyperDrive operation ID is already bound to a different mutation".to_string())));
+        }
+        return Ok(record);
     }
 
     let entity_index = entity_path(&mutation);

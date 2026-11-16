@@ -33,9 +33,32 @@ async fn provider_contract_runs_in_holochain_07_conductor() {
         entity_type: "holon".into(), kind: 0, version_id: "version-1".into(), payload_json: Some("{}".into()),
     };
     let first: Record = conductor.call(&zome, "apply_hyperdrive_mutation", replayable.clone()).await;
-    let replay: Record = conductor.call(&zome, "apply_hyperdrive_mutation", replayable).await;
+    let replay: Record = conductor.call(&zome, "apply_hyperdrive_mutation", replayable.clone()).await;
     assert_eq!(first.action_address(), replay.action_address());
     assert_ne!(created.action_address(), first.action_address());
+
+    let mut conflicting = replayable.clone();
+    conflicting.version_id = "version-conflict".into();
+    conflicting.payload_json = Some("{\"changed\":true}".into());
+    let rejected = conductor.call_fallible::<_, Record>(
+        &zome, "apply_hyperdrive_mutation", conflicting).await;
+    let error = rejected.expect_err("a different mutation cannot reuse the operation ID");
+    assert!(format!("{error:?}").contains("already bound to a different mutation"));
+
+    let stored: Option<Record> = conductor.call(
+        &zome, "get_hyperdrive_mutation", replayable.operation_id.clone()).await;
+    let stored = stored.expect("original mutation must remain indexed");
+    assert_eq!(stored.action_address(), first.action_address());
+    let payload: HyperDriveMutation = stored.entry().to_app_option().unwrap().unwrap();
+    assert!(payload == replayable, "original mutation content changed");
+
+    let latest: Option<Record> = conductor.call(&zome, "get_latest_hyperdrive_entity",
+        serde_json::json!({
+            "avatar_id": &replayable.avatar_id,
+            "entity_type": &replayable.entity_type,
+            "entity_id": &replayable.entity_id,
+        })).await;
+    assert_eq!(latest.unwrap().action_address(), first.action_address());
 }
 
 #[tokio::test(flavor = "multi_thread")]
