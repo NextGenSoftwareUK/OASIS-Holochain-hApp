@@ -4,6 +4,7 @@ use serde_json::Value;
 
 pub mod hyperdrive;
 pub mod hypernet;
+pub mod onet;
 
 #[hdk_extern]
 // Was Ok(Pass) only; now also grants recv_remote_signal so HyperNET peers can message this cell.

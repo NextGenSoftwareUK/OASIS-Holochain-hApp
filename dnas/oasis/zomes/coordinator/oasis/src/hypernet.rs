@@ -41,11 +41,11 @@ pub struct HyperNETSendInput {
     pub to: Option<Vec<AgentPubKey>>,
 }
 
-fn session_base(session: &str) -> ExternResult<EntryHash> {
+pub(crate) fn session_base(session: &str) -> ExternResult<EntryHash> {
     Path::from(format!("hypernet.session.{}", session.replace('.', "_dot_").replace('/', "_slash_"))).path_entry_hash()
 }
 
-fn session_links(session: &str) -> ExternResult<Vec<Link>> {
+pub(crate) fn session_links(session: &str) -> ExternResult<Vec<Link>> {
     // Reuses an existing link type so the integrity zome (and the DNA hash) doesn't change; the base path keeps
     // these links apart from everything else.
     get_links(LinkQuery::try_new(session_base(session)?, LinkTypes::AllAvatars)?, GetStrategy::Network)
@@ -55,7 +55,7 @@ fn now_micros() -> ExternResult<i64> {
     Ok(sys_time()?.as_micros())
 }
 
-fn peers(session: &str) -> ExternResult<Vec<HyperNETPeer>> {
+pub(crate) fn peers(session: &str) -> ExternResult<Vec<HyperNETPeer>> {
     let mut peers: Vec<HyperNETPeer> = Vec::new();
     for link in session_links(session)? {
         if let Ok(agent) = AgentPubKey::try_from(link.target.clone()) {
@@ -69,7 +69,7 @@ fn peers(session: &str) -> ExternResult<Vec<HyperNETPeer>> {
     Ok(peers)
 }
 
-fn signal(kind: &str, session: &str, player_name: &str, payload: Option<serde_bytes::ByteBuf>) -> ExternResult<HyperNETSignal> {
+pub(crate) fn signal(kind: &str, session: &str, player_name: &str, payload: Option<serde_bytes::ByteBuf>) -> ExternResult<HyperNETSignal> {
     Ok(HyperNETSignal {
         hypernet: true,
         kind: kind.into(),
@@ -169,7 +169,7 @@ pub fn grant_remote_signals() -> ExternResult<()> {
 
 /// One send_remote_signal per player: given several agents on the same conductor, Holochain delivers a multi-target
 /// signal to only one of them (seen on 0.7.1 with three local agents), so never rely on a multi-target send.
-fn send_to(signal: HyperNETSignal, targets: Vec<AgentPubKey>) -> ExternResult<()> {
+pub(crate) fn send_to(signal: HyperNETSignal, targets: Vec<AgentPubKey>) -> ExternResult<()> {
     for target in targets {
         send_remote_signal(signal.clone(), vec![target])?;
     }
